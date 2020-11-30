@@ -6,12 +6,16 @@ import {
   KeyboardAvoidingView,
   Platform,
   TextInput,
+  Alert,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import { useNavigation } from '@react-navigation/native';
+import * as Yup from 'yup';
 
 import { Form } from '@unform/mobile';
 import { FormHandles } from '@unform/core';
+
+import getValidationErrors from '../../utils/getValidationErrors';
 
 import Input from '../../components/Input';
 import Button from '../../components/Button';
@@ -27,6 +31,11 @@ import {
   CreateAccountButtonText,
 } from './styles';
 
+interface SIgnInFormData {
+  email: string;
+  password: string;
+}
+
 const SignIn: React.FC = () => {
   // <FormHandles> indica quais os metodos disponiveis para manipular nssos formularios de maneira direta
   const formRef = useRef<FormHandles>(null);
@@ -34,10 +43,43 @@ const SignIn: React.FC = () => {
 
   const navigation = useNavigation();
 
-  // formRef.current.
+  const handleSignIn = useCallback(async (data: SignInFormData) => {
+    try {
+      formRef.current?.setErrors({});
 
-  const handleSignIn = useCallback((data: object) => {
-    console.log(data);
+      // quanod quero validar um objeto inteiro geralmete crio um schema de validação
+      const schema = Yup.object().shape({
+        email: Yup.string()
+          .required('E-mail obrigatório')
+          .email('Digito um e-mail válido'),
+        password: Yup.string().required('Senha obrigatória'),
+      });
+
+      await schema.validate(data, {
+        // com abortEarly false ele não para no primeiro erro
+        abortEarly: false,
+      });
+
+      // await signIn({
+      //   email: data.email,
+      //   password: data.password,
+      // });
+
+      // history.push('/dashboard');
+    } catch (err) {
+      if (err instanceof Yup.ValidationError) {
+        const errors = getValidationErrors(err);
+
+        formRef.current?.setErrors(errors);
+
+        return;
+      }
+
+      Alert.alert(
+        'Erro na autenticação',
+        'Ocorreu um erro ao fazer login, cheque as credenciais.',
+      );
+    }
   }, []);
 
   return (
